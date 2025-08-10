@@ -21,17 +21,21 @@
 START_NAMESPACE_DISTRHO
 
 TripleChorus::TripleChorus() : Plugin(0, 0, 0) {  // no parameters, programs, or states
-    lowpass = new float[getBufferSize()];
+    lpfIn = new float[getBufferSize()];
+    lpfOut1 = new float[getBufferSize()];
+    lpfOut2 = new float[getBufferSize()];
     ram = new float[DELAYSIZE];  // probably needs to be calculated based on sample rate
 
     sampleRate = getSampleRate();
 
     // lfo values taken from a rough simulation
-    fastOmega = 6.283 * 6.8 / sampleRate;  // approximate, can be adjusted
-    slowOmega = 6.283 * 0.7 / sampleRate;  // again approximate
 
     fastPhase = 0;
     slowPhase = 0;
+
+    preFilter = new SVF();
+    postFilter1 = new SVF();
+    postFilter2 = new SVF();
 
     // calculate SVF params
     // hardcoded values for now
@@ -44,16 +48,16 @@ TripleChorus::TripleChorus() : Plugin(0, 0, 0) {  // no parameters, programs, or
     //
     // Here is the best writeup ever on SVFs
     // https://kokkinizita.linuxaudio.org/papers/digsvfilt.pdf
-    float fc = 12600;
-    float F = fc / sampleRate;  // FIXME assume 48kHz
-    float w = 2 * tan(3.14159 * F);
-    float a = w / 1.3;
-    float b = w * w;
+}
 
-    // "corrected" SVF params, per Fons Adriaensen
-    c1 = (a + b) / (1 + a / 2 + b / 4);
-    c2 = b / (a + b);
-    d0 = c1 * c2 / 4;
+TripleChorus::~TripleChorus() {
+    delete lpfIn;
+    delete lpfOut1;
+    delete lpfOut2;
+    delete ram;
+    delete preFilter;
+    delete postFilter1;
+    delete postFilter2;
 }
 
 // Initialisation function
@@ -63,10 +67,17 @@ void TripleChorus::initAudioPort(bool input, uint32_t index, AudioPort &port) {
 
 // Processing functions
 void TripleChorus::activate() {
-    // zero out filter state
-    in_z1 = in_z2 = 0;
+    fastOmega = 6.283 * 6.8 / sampleRate;  // approximate, can be adjusted
+    slowOmega = 6.283 * 0.7 / sampleRate;  // again approximate
+
+    // zero out the delay buffer
     memset(ram, 0, sizeof(float) * DELAYSIZE);
+    preFilter->setCutoff(12600, 1.3, sampleRate);
+    postFilter1->setCutoff(11653, 6.6, sampleRate);
+    postFilter2->setCutoff(5883, 1.1, sampleRate);
+    
 }
+
 
 void TripleChorus::deactivate() {
     // zero out the outputs, maybe
@@ -81,6 +92,10 @@ void TripleChorus::run(const float **inputs, float **outputs, uint32_t frames) {
     float lfoMod, dly1, frac;
     uint16_t tap, delay;
 
+    // filter the input
+    preFilter->runSVF(inputs[0], lpfIn, frames);
+    // printf("after filter lpfIn[0] = %6f\n", lpfIn[0]);
+
     for (uint32_t i = 0; i < frames; i++) {
         // run a step of LFO
         fastPhase += fastOmega;
@@ -88,13 +103,9 @@ void TripleChorus::run(const float **inputs, float **outputs, uint32_t frames) {
         slowPhase += slowOmega;
         if (slowPhase > 6.283) slowPhase -= 6.283;
 
-        input = inputs[0][i];
+        ram[delayptr] = lpfIn[i];
 
         // lowpass filter
-        x = input - in_z1 - in_z2;
-        in_z2 += c2 * in_z1;
-        in_z1 += c1 * x;
-        ram[delayptr] = d0 * x + in_z2;  // store the filtered audio in the buffer
 
         // now we need to calculate the delay
         // I don't know how long the Solina's delay lines are so I'm guessing 2-4ms for now
@@ -103,8 +114,8 @@ void TripleChorus::run(const float **inputs, float **outputs, uint32_t frames) {
         // 120deg 0.248 slow 0.745 fast
         // 240deg 0.252 slow 0.609 fast
 
-#define BASE 0.006
-#define AMT 0.001
+#define BASE 0.005
+#define AMT 0.0015
 
         // 0 degree delay line
         lfoMod = 0.203 * sin(fastPhase) + 0.635 * sin(slowPhase);
@@ -139,11 +150,14 @@ void TripleChorus::run(const float **inputs, float **outputs, uint32_t frames) {
         s0 = ram[tap & 0x3ff];
         out240 = ((s1 - s0) * frac) + s0;
 
-        outputs[0][i] = (out0 + out120 + out240) / 3;
+        lpfOut1[i] = (out0 + out120 + out240) / 3;
 
         delayptr++;
         delayptr &= 0x3ff;
     }
+    postFilter1->runSVF(lpfOut1, lpfOut2, frames);
+    postFilter2->runSVF(lpfOut2, outputs[0], frames);
+    // outputs[0][0]=0.5;
 }
 
 // create the plugin

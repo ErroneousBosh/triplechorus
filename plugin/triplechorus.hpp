@@ -20,6 +20,7 @@
 #define TRIPLECHORUS_HPP
 
 #include "DistrhoPlugin.hpp"
+#include "svf.hpp"
 
 // total size of delay line buffer
 #define DELAYSIZE 1028
@@ -29,6 +30,7 @@ START_NAMESPACE_DISTRHO
 class TripleChorus : public Plugin {
    public:
     TripleChorus();
+    ~TripleChorus();
 
    protected:
     const char *getLabel() const override { return "TripleChorus"; }
@@ -54,12 +56,13 @@ class TripleChorus : public Plugin {
     double slowPhase, slowOmega;
     double fastLfo, slowLfo;
 
-    float c1, c2, d0, in_z1, in_z2;
-
     uint16_t delayptr;
 
     float *ram;
-    float *lowpass;
+    float *lpfIn;
+    float *lpfOut1, *lpfOut2;
+
+    SVF *preFilter, *postFilter1, *postFilter2;
 
     DISTRHO_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(TripleChorus);
 };

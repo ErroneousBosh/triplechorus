@@ -9,7 +9,7 @@
 
 NAME = TripleChorus
 
-FILES_DSP = triplechorus.cpp
+FILES_DSP = svf.cpp triplechorus.cpp
 include ../dpf/Makefile.plugins.mk
 
 TARGETS += vst2 vst3 jack lv2_dsp
