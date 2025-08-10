@@ -27,8 +27,8 @@ TripleChorus::TripleChorus() : Plugin(0, 0, 0) {  // no parameters, programs, or
     sampleRate = getSampleRate();
 
     // lfo values taken from a rough simulation
-    fastOmega = 6.283 * 5.7 / sampleRate;  // approximate, can be adjusted
-    slowOmega = 6.283 * 0.5 / sampleRate;  // again approximate
+    fastOmega = 6.283 * 6.8 / sampleRate;  // approximate, can be adjusted
+    slowOmega = 6.283 * 0.7 / sampleRate;  // again approximate
 
     fastPhase = 0;
     slowPhase = 0;
@@ -94,7 +94,7 @@ void TripleChorus::run(const float **inputs, float **outputs, uint32_t frames) {
         x = input - in_z1 - in_z2;
         in_z2 += c2 * in_z1;
         in_z1 += c1 * x;
-        ram[delayptr] = (d0 * x + in_z2);  // store the filtered audio in the buffer
+        ram[delayptr] = d0 * x + in_z2;  // store the filtered audio in the buffer
 
         // now we need to calculate the delay
         // I don't know how long the Solina's delay lines are so I'm guessing 2-4ms for now
@@ -103,9 +103,12 @@ void TripleChorus::run(const float **inputs, float **outputs, uint32_t frames) {
         // 120deg 0.248 slow 0.745 fast
         // 240deg 0.252 slow 0.609 fast
 
+#define BASE 0.006
+#define AMT 0.001
+
         // 0 degree delay line
         lfoMod = 0.203 * sin(fastPhase) + 0.635 * sin(slowPhase);
-        dly1 = (0.002 + (0.002 * lfoMod)) * sampleRate;
+        dly1 = (BASE + (AMT * lfoMod)) * sampleRate;
         delay = (int)dly1;
         frac = dly1 - delay;
 
@@ -116,7 +119,7 @@ void TripleChorus::run(const float **inputs, float **outputs, uint32_t frames) {
 
         // 120 degree delay line
         lfoMod = 0.248 * sin(fastPhase + 2.09) + 0.745 * sin(slowPhase + 2.09);
-        dly1 = (0.002 + (0.002 * lfoMod)) * sampleRate;
+        dly1 = (BASE + (AMT * lfoMod)) * sampleRate;
         delay = (int)dly1;
         frac = dly1 - delay;
 
@@ -127,7 +130,7 @@ void TripleChorus::run(const float **inputs, float **outputs, uint32_t frames) {
 
         // 240 degree delay line
         lfoMod = 0.252 * sin(fastPhase + 4.18) + 0.609 * sin(slowPhase + 4.18);
-        dly1 = (0.002 + (0.002 * lfoMod)) * sampleRate;
+        dly1 = (BASE + (AMT * lfoMod)) * sampleRate;
         delay = (int)dly1;
         frac = dly1 - delay;
 
