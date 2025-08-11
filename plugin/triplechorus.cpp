@@ -72,12 +72,13 @@ void TripleChorus::activate() {
 
     // zero out the delay buffer
     memset(ram, 0, sizeof(float) * DELAYSIZE);
+    memset(lpfIn, 0, sizeof(float) * getBufferSize());
+    memset(lpfOut1, 0, sizeof(float) * getBufferSize());
+    memset(lpfOut2, 0, sizeof(float) * getBufferSize());
     preFilter->setCutoff(12600, 1.3, sampleRate);
     postFilter1->setCutoff(11653, 6.6, sampleRate);
     postFilter2->setCutoff(5883, 1.1, sampleRate);
-    
 }
-
 
 void TripleChorus::deactivate() {
     // zero out the outputs, maybe
@@ -88,7 +89,7 @@ void TripleChorus::run(const float **inputs, float **outputs, uint32_t frames) {
     // actual effects here
 
     // now run the DSP
-    float input, out0 = 0, out120 = 0, out240 = 0, s0 = 0, s1 = 0, x;
+    float out0 = 0, out120 = 0, out240 = 0, s0 = 0, s1 = 0;
     float lfoMod, dly1, frac;
     uint16_t tap, delay;
 
