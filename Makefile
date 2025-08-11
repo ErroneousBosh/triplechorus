@@ -12,7 +12,8 @@ include dpf/Makefile.base.mk
 all: plugins gen
 
 plugins: 
-	$(MAKE) all -C plugin
+	$(MAKE) all -C triplechorus
+	$(MAKE) all -C simpledelay
 
 ifneq ($(CROSS_COMPILING),true)
 gen: plugins dpf/utils/lv2_ttl_generator

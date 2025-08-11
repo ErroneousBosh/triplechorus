@@ -1,5 +1,5 @@
 /*
-   Triple Chorus plugin
+   State Variable Filter
 
    Copyright 2025 Gordon JC Pearce <gordonjcp@gjcp.net>
 
@@ -15,9 +15,11 @@
    OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN
    CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 */
+
 #include "svf.hpp"
 
 #include <math.h>
+
 #include <cstdio>
 
 SVF::SVF() {
@@ -50,5 +52,5 @@ void SVF::runSVF(const float *input, float *output, uint32_t frames) {
         z1 += c1 * x;
         output[i] = d0 * x + z2;
     }
-    //printf("%f\n", x);
+    // printf("%f\n", x);
 }

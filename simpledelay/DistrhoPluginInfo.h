@@ -1,7 +1,5 @@
 /*
-   TripleChorus chorus plugin
-
-   State Variable Filter
+   Simple Delay plugin
 
    Copyright 2025 Gordon JC Pearce <gordonjcp@gjcp.net>
 
@@ -18,21 +16,18 @@
    CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 */
 
-#ifndef SVF_HPP
-#define SVF_HPP
 
-#include <stdint.h>
+#ifndef DISTRHO_PLUGIN_INFO_H
+#define DISTRHO_PLUGIN_INFO_H
 
-class SVF {
-   public:
-    SVF();
-    void setCutoff(float cutoff, float Q, float sampleRate);
-    void runSVF(const float *input, float *output, uint32_t frames);
+#define DISTRHO_PLUGIN_NAME "Simple Delay"
+#define DISTRHO_PLUGIN_URI "https://gjcp.net/plugins/simpledelay"
 
-   protected:
-   private:
-   float c1, c2, d0;
-   float z1, z2;
-};
+#define DISTRHO_PLUGIN_NUM_INPUTS 1
+#define DISTRHO_PLUGIN_NUM_OUTPUTS 1
+
+#define DISTRHO_PLUGIN_IS_RT_SAFE 1
+
+#define DISTRHO_PLUGIN_WANT_PROGRAMS 0
 
 #endif
