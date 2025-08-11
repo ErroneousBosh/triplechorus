@@ -44,13 +44,17 @@ void SVF::setCutoff(float cutoff, float Q, float sampleRate) {
 }
 
 void SVF::runSVF(const float *input, float *output, uint32_t frames) {
-    float x;
+    float x, z;
     for (uint32_t i = 0; i < frames; i++) {
         // lowpass filter
         x = input[i] - z1 - z2;
         z2 += c2 * z1;
         z1 += c1 * x;
-        output[i] = d0 * x + z2;
+
+        z = d0 * x + z2;
+
+        z = z / (1 + abs(z));
+        output[i] = z;
     }
     // printf("%f\n", x);
 }

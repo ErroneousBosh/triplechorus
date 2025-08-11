@@ -32,6 +32,15 @@ class SimpleDelay : public Plugin {
     SimpleDelay();
     ~SimpleDelay();
 
+    void initParameter(uint32_t index, Parameter &parameter) override;
+    void setParameterValue(uint32_t index, float value) override;
+    float getParameterValue(uint32_t index) const override;
+
+    enum Parameters {
+        pDelay,
+        kParameterCount
+    };
+
    protected:
     const char *getLabel() const override { return "SimpleDelay"; }
     const char *getDescription() const override {
@@ -55,6 +64,8 @@ class SimpleDelay : public Plugin {
     double fastPhase, fastOmega;
     double slowPhase, slowOmega;
     double fastLfo, slowLfo;
+
+    float delayTime, delayTarget;
 
     uint16_t delayptr;
 

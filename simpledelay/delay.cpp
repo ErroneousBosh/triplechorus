@@ -20,7 +20,7 @@
 
 START_NAMESPACE_DISTRHO
 
-SimpleDelay::SimpleDelay() : Plugin(0, 0, 0) {  // no parameters, programs, or states
+SimpleDelay::SimpleDelay() : Plugin(kParameterCount, 0, 0) {  // no parameters, programs, or states
     lpfIn = new float[getBufferSize()];
     lpfOut1 = new float[getBufferSize()];
     lpfOut2 = new float[getBufferSize()];
@@ -33,11 +33,14 @@ SimpleDelay::SimpleDelay() : Plugin(0, 0, 0) {  // no parameters, programs, or s
     fastPhase = 0;
     slowPhase = 0;
 
+    delayTarget = 0.5;
+
     preFilter = new SVF();
     postFilter1 = new SVF();
     postFilter2 = new SVF();
 
 }
+
 
 SimpleDelay::~SimpleDelay() {
     delete lpfIn;
@@ -48,6 +51,31 @@ SimpleDelay::~SimpleDelay() {
     delete postFilter1;
     delete postFilter2;
 }
+
+void SimpleDelay::initParameter(uint32_t index, Parameter &parameter) {
+    if (index == pDelay) {
+        parameter.hints = kParameterIsAutomatable | kParameterIsLogarithmic;
+        parameter.name = "Delay Time";
+        parameter.symbol = "delay_time";
+        parameter.ranges.def = 1.0f;
+        parameter.ranges.min = 0.125f;
+        parameter.ranges.max = 2.0f;
+    }
+}
+
+void SimpleDelay::setParameterValue(uint32_t index, float value) {
+    if (index == pDelay) {
+        delayTime = value;
+    }
+}
+
+float SimpleDelay::getParameterValue(uint32_t index) const {
+    if (index == pDelay) {
+        return delayTime;
+    }
+    return 0;
+}
+
 
 // Initialisation function
 void SimpleDelay::initAudioPort(bool input, uint32_t index, AudioPort &port) {
@@ -65,8 +93,8 @@ void SimpleDelay::activate() {
     memset(lpfOut1, 0, sizeof(float) * getBufferSize());
     memset(lpfOut2, 0, sizeof(float) * getBufferSize());
 
-    preFilter->setCutoff(12600, 1.3, sampleRate);
-    postFilter1->setCutoff(5000, 3, sampleRate);
+    preFilter->setCutoff(9000, .7, sampleRate);
+    postFilter1->setCutoff(3000, .7, sampleRate);
     postFilter2->setCutoff(12000, 0.7, sampleRate);
     
 }
@@ -89,6 +117,8 @@ void SimpleDelay::run(const float **inputs, float **outputs, uint32_t frames) {
     preFilter->runSVF(inputs[0], lpfIn, frames);
     // printf("after filter lpfIn[0] = %6f\n", lpfIn[0]);
 
+    postFilter1->setCutoff(6000- (1000*delayTarget), 1.0, sampleRate);
+
     for (uint32_t i = 0; i < frames; i++) {
         // run a step of LFO
         fastPhase += fastOmega;
@@ -96,23 +126,19 @@ void SimpleDelay::run(const float **inputs, float **outputs, uint32_t frames) {
         slowPhase += slowOmega;
         if (slowPhase > 6.283) slowPhase -= 6.283;
 
-        ram[delayptr] = lpfIn[i] + 0.975 * lpfOut1[i];
 
-        // lowpass filter
+        float z = lpfIn[i] + 0.5325 * lpfOut1[i];
 
-        // now we need to calculate the delay
-        // I don't know how long the Solina's delay lines are so I'm guessing 2-4ms for now
-        // normalised mod depths, from a quick simulation of the LFO block:
-        //   0deg 0.203 slow 0.635 fast
-        // 120deg 0.248 slow 0.745 fast
-        // 240deg 0.252 slow 0.609 fast
+        z = z/(.75+abs(z));
 
-#define BASE 0.65
-#define AMT 0.005
+        ram[delayptr] = z;
 
-        // 0 degree delay line
-        lfoMod = 0.5 * sin(fastPhase) + 0.0 * sin(slowPhase);
-        dly1 = (BASE + (AMT * lfoMod)) * sampleRate;
+
+        delayTarget = ((delayTime - delayTarget) * 0.00005) + delayTarget;
+
+       // delayTarget = delayTime;
+
+        dly1 = (0.5 * delayTarget + 0.0005*sin(slowPhase)) * sampleRate;
         delay = (int)dly1;
         frac = dly1 - delay;
 
@@ -121,12 +147,12 @@ void SimpleDelay::run(const float **inputs, float **outputs, uint32_t frames) {
         s0 = ram[tap & 0xffff];
         out0 = ((s1 - s0) * frac) + s0;
 
-        lpfOut1[i] = (out0 ) ;
+        outputs[0][i] = (out0 ) ;
 
         delayptr++;
         delayptr &= 0xffff;
     }
-    postFilter2->runSVF(lpfOut1, outputs[0], frames);
+    postFilter1->runSVF(outputs[0], lpfOut1, frames);
     // outputs[0][0]=0.5;
 }
 
