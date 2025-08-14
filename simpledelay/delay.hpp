@@ -38,6 +38,7 @@ class SimpleDelay : public Plugin {
 
     enum Parameters {
         pDelay,
+        pRegen,
         kParameterCount
     };
 
@@ -61,19 +62,16 @@ class SimpleDelay : public Plugin {
 
    private:
     double sampleRate;
-    double fastPhase, fastOmega;
-    double slowPhase, slowOmega;
-    double fastLfo, slowLfo;
 
-    float delayTime, delayTarget;
+    float delayTime, delayTarget, regen;
 
     uint16_t delayptr;
 
     float *ram;
     float *lpfIn;
-    float *lpfOut1, *lpfOut2;
+    float *lpfOut1;
 
-    SVF *preFilter, *postFilter1, *postFilter2;
+    SVF *preFilter, *postFilter1;
 
     DISTRHO_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(SimpleDelay);
 };

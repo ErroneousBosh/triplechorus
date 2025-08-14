@@ -30,7 +30,9 @@ endif
 
 clean:
 	$(MAKE) clean -C dpf/utils/lv2-ttl-generator
-	 $(MAKE) clean -C plugin
+	$(MAKE) clean -C simpledelay
+	$(MAKE) clean -C simplephaser
+	$(MAKE) clean -C triplechorus
 	rm -rf bin build
 
 .PHONY: plugins
